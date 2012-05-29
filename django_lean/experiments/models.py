@@ -168,38 +168,6 @@ class Experiment(models.Model):
     def __unicode__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        """
-        The save override's goal is to save the start or end date when
-        the state changes
-        """
-        #do nothing for new ones
-        if self.id:
-            old_self = None
-
-            try:
-                old_self = Experiment.objects.get(id=self.id)
-            except Experiment.DoesNotExist:
-                raise Exception("Can't find the existing Experiment.")
-
-            if old_self.state != self.state:
-                if (old_self.state == Experiment.DISABLED_STATE
-                    and self.state == Experiment.ENABLED_STATE
-                    and not old_self.start_date):
-                    # enabling
-                    self.start_date = date.today()
-                elif (old_self.state == Experiment.ENABLED_STATE
-                      and self.state == Experiment.DISABLED_STATE
-                      and not old_self.end_date):
-                    # disabling
-                    self.end_date = date.today()
-                elif (old_self.state == Experiment.ENABLED_STATE
-                      and self.state == Experiment.PROMOTED_STATE
-                      and not old_self.end_date):
-                    #promoting
-                    self.end_date = date.today()
-        return super(Experiment, self).save(*args, **kwargs)
-
     @staticmethod
     def control(experiment_name, experiment_user):
         """
