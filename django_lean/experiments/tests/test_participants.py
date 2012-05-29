@@ -70,7 +70,7 @@ class TestParticipants(TestCase):
         experiment = Experiment(name="disabled")
         experiment.save()
         self.assertFalse(Experiment.test("disabled", user))
-        self.assertEquals(None, user.get_anonymous_id())
+        self.assertNotEquals(None, user.get_anonymous_id())
 
     def testEnabledPromotedAndDisabledExperiment(self):
         # enabled test, new user (prove we get both results)

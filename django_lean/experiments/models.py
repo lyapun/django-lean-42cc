@@ -248,20 +248,20 @@ class Experiment(models.Model):
                 l.warning("Can't find the Experiment named %s" %
                           experiment_name)
                 return queried_group == Participant.CONTROL_GROUP
+
+        if all_user:
+            assigned_group = cls.__enroll_user(experiment, experiment_user,
+                queried_group=queried_group)
+            return queried_group == assigned_group
+        else:
+            assigned_group = cls.__enroll_user(experiment, experiment_user)
+
         if experiment.state == Experiment.DISABLED_STATE:
             return queried_group == Participant.CONTROL_GROUP
         elif experiment.state == Experiment.PROMOTED_STATE:
             return queried_group == Participant.TEST_GROUP
-
-        if experiment.state != Experiment.ENABLED_STATE:
-            raise Exception("Invalid experiment state !")
-        if all_user:
-            assigned_group = cls.__enroll_user(experiment, experiment_user,
-                queried_group=queried_group)
         else:
-            assigned_group = cls.__enroll_user(experiment, experiment_user)
-
-        return queried_group == assigned_group
+            return queried_group == assigned_group
 
     @classmethod
     def __enroll_user(cls, experiment, experiment_user, queried_group=None):
