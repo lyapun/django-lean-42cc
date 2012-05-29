@@ -63,6 +63,7 @@ class GoalRecord(models.Model):
                 raise
             l.warning("Can't find the GoalType named %s" % goal_name)
         except Exception, e:
+            print 'e', e
             l.exception("Unexpected exception in GoalRecord.record")
 
 
@@ -118,7 +119,6 @@ class Experiment(models.Model):
 
         def get_enrollment(self, experiment):
             anonymous_visitor = self.__get_anonymous_visitor()
-
             if anonymous_visitor:
                 participants = Participant.objects.filter(
                     anonymous_visitor=anonymous_visitor,
@@ -220,8 +220,19 @@ class Experiment(models.Model):
         return Experiment.__test_group(experiment_name, experiment_user,
                                        Participant.TEST_GROUP)
 
+    @staticmethod
+    def all(experiment_name, experiment_user):
+        """
+        Will return True for all users which in the passed experiment.
+        If the user is not enrolled in this experiment, and the experiment is
+        enabled, it will enroll the user.
+        """
+        return Experiment.__test_group(experiment_name, experiment_user,
+                                       Participant.CONTROL_GROUP, all_user=True)
+
     @classmethod
-    def __test_group(cls, experiment_name, experiment_user, queried_group):
+    def __test_group(cls, experiment_name, experiment_user, queried_group,
+                        all_user=False):
         """does the real work"""
         from django_lean.experiments.loader import ExperimentLoader
         ExperimentLoader.load_all_experiments()
@@ -244,17 +255,28 @@ class Experiment(models.Model):
 
         if experiment.state != Experiment.ENABLED_STATE:
             raise Exception("Invalid experiment state !")
+        if all_user:
+            assigned_group = cls.__enroll_user(experiment, experiment_user,
+                queried_group=queried_group)
+        else:
+            assigned_group = cls.__enroll_user(experiment, experiment_user)
 
+        return queried_group == assigned_group
+
+    @classmethod
+    def __enroll_user(cls, experiment, experiment_user, queried_group=None):
         user = cls.__create_user(experiment_user)
 
         assigned_group = user.get_enrollment(experiment)
 
         if assigned_group == None:
-            assigned_group = random.choice((Participant.CONTROL_GROUP,
+            if queried_group != None:
+                assigned_group = queried_group
+            else:
+                assigned_group = random.choice((Participant.CONTROL_GROUP,
                                             Participant.TEST_GROUP))
             user.set_enrollment(experiment, assigned_group)
-
-        return queried_group == assigned_group
+        return assigned_group
 
 
 class Participant(models.Model):
